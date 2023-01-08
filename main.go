@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"flag"
 	"fmt"
 	"strconv"
 	"strings"
@@ -10,9 +11,9 @@ import (
 )
 
 var (
-	N           int = 10
-	MaxHashTime int = 1000000
-	Difficulty  int = 5
+	N           int
+	MaxHashTime int
+	Difficulty  int
 	Channels    []chan Message
 	Workers     []Worker
 	RoundID     int = 0
@@ -65,12 +66,7 @@ func (w *Worker) broadcast() {
 	}
 }
 
-func (w *Worker) lastBlock() Block {
-	return w.chain[len(w.chain)-1]
-}
-
-func (w *Worker) workOneRound(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (w *Worker) receive() {
 	var senderID int
 	var accept bool
 Loop:
@@ -79,6 +75,9 @@ Loop:
 		case msg, ok := <-Channels[w.id]:
 			if !ok {
 				break Loop
+			}
+			if w.Malicious {
+				continue
 			}
 			if !isChainValid(msg.chain) {
 				continue
@@ -95,9 +94,18 @@ Loop:
 	if accept {
 		fmt.Printf("%d,%d: accept blockchain from %d\n", RoundID, w.id, senderID)
 	}
+}
+
+func (w *Worker) lastBlock() Block {
+	return w.chain[len(w.chain)-1]
+}
+
+func (w *Worker) workOneRound(wg *sync.WaitGroup) {
+	defer wg.Done()
+	w.receive()
 	b := Block{
 		prevHash: w.lastBlock().hash,
-		data:     fmt.Sprintf("This is %d at %d", w.id, time.Now().Unix()),
+		data:     fmt.Sprintf("%d,%d", w.id, time.Now().UnixMicro()),
 	}
 	mineTimes := 1
 	if w.Malicious {
@@ -111,7 +119,7 @@ Loop:
 			}
 			b = Block{
 				prevHash: w.lastBlock().hash,
-				data:     fmt.Sprintf("This is %d at %d", w.id, time.Now().Unix()),
+				data:     fmt.Sprintf("%d,%d", w.id, time.Now().UnixMicro()),
 			}
 		}
 	}
@@ -159,27 +167,47 @@ func (b *Block) mine() bool {
 	return false
 }
 
+func printChain(blocks []Block) {
+	for i, b := range blocks {
+		datas := strings.Split(b.data, ",")
+		if len(datas) != 2 {
+			continue
+		}
+		fmt.Printf("Block %d, mined by %s at %s, hash %s\n", i, datas[0], datas[1], b.hash)
+	}
+}
+
 func main() {
-	Channels = make([]chan Message, N)
+	flag.IntVar(&Difficulty, "difficulty", 5, "Hash difficulty")
+	flag.IntVar(&MaxHashTime, "maxHashTime", 100000, "The maximum hash times for a miner each round")
+	good := flag.Int("good", 10, "Number of good miners")
+	evil := flag.Int("evil", 0, "Number of evil miners")
+	round := flag.Int("round", 10, "Number of the rounds")
+	flag.Parse()
+
+	N = *good
+
 	Workers = make([]Worker, N)
 	for i := 0; i < N; i++ {
-		Channels[i] = make(chan Message, N)
 		Workers[i] = Worker{
 			id:    i,
 			chain: []Block{getGenesisBlock()},
 		}
 	}
-	Workers[0].Malicious = true
-	Workers[0].MaliciousCount = 5
-	fmt.Println("heelo world")
-	b := Block{
-		prevHash: "123",
-		data:     "hi",
-		nonce:    222,
+	if *evil > 0 {
+		Workers = append(Workers, Worker{
+			id:             N,
+			Malicious:      true,
+			MaliciousCount: *evil,
+			chain:          []Block{getGenesisBlock()},
+		})
+		N++
 	}
-	fmt.Println(b.calcHash())
-	fmt.Println(getGenesisBlock().hash)
-	for i := 0; i < 10; i++ {
+	Channels = make([]chan Message, N)
+	for i := 0; i < N; i++ {
+		Channels[i] = make(chan Message, N)
+	}
+	for i := 0; i < *round; i++ {
 		wg := sync.WaitGroup{}
 		for i := range Workers {
 			worker := &Workers[i]
@@ -190,6 +218,7 @@ func main() {
 		RoundID++
 	}
 	for _, worker := range Workers {
-		fmt.Printf("valid %v, %+v\n", isChainValid(worker.chain), worker)
+		fmt.Printf("Worker %d reporting...\n", worker.id)
+		printChain(worker.chain)
 	}
 }

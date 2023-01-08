@@ -1,0 +1,121 @@
+# Proof of work simulation
+
+所有节点以轮为单位挖矿。
+
+每一轮，每个节点依次
+- 接收广播的消息
+- 挖矿
+- 广播
+
+假定每个节点的算力相同，使用`maxHashTime`参数来调节每次挖矿时，每个节点计算哈希的次数。
+
+节点分为诚实节点和恶意节点。
+恶意节点会合作挖矿，并且不接受诚实节点的消息。为了方便实现，可以把恶意节点抽象为一个恶意节点，并将其计算哈希的次数设为`#{evil nodes}*maxHashTime`
+
+## Parameters
+- `difficulty` 挖矿难度
+- `maxHashTime` 最大哈希次数
+- `good` 诚实节点的数量
+- `evil` 恶意节点的数量
+- `round` 模拟运行的轮数
+
+
+## Simulation 1
+
+参数
+difficulty=5
+maxHashTime=100000
+good=10
+evil=0
+round=10
+
+```
+Block 1, mined by 8 at 1673151928122448, hash 00000c5e2ddb50a69b3d9086b6e73344834599d21cc34bd9e98429fabef2630f
+Block 2, mined by 7 at 1673151928766224, hash 0000018d97ae677829b3769024a5261031f568e9a19bbc09dc13646c4926ec29
+Block 3, mined by 7 at 1673151929089931, hash 000000a9e99c729fe579770553ae72f1b6d978b52f2bf9b4c8c9501ec21f210e
+Block 4, mined by 8 at 1673151929421268, hash 00000626149136210ce79184f9fb44f9b7f064e26a2525e3a4bc339936a8baf7
+Block 5, mined by 7 at 1673151929759096, hash 00000b5b01531ca05bbcbbe21d160bab022b6378c8ef3b7f756385f9407f978e
+Block 6, mined by 8 at 1673151930060114, hash 000005c7f01fd51aac623da41ab1a2fc31b4530b7045e9a2d6c44ee2a1fcd213
+Block 7, mined by 5 at 1673151930389730, hash 000002bcefb6fa96021e1544fec45a2e868362b7f09f71625344b13b6aad4d11
+Block 8, mined by 4 at 1673151930726304, hash 00000c41906e258e4c30c3b5176265b72e38fd98efe7e54ae93e186c26734f3a
+```
+平均出块时间 372ms
+
+## Simulation 2
+
+参数
+difficulty=6
+maxHashTime=1000000
+good=10
+evil=0
+round=10
+
+```
+Block 1, mined by 9 at 1673153426284331, hash 0000006e984ee8de871778d31a2121171014d87bbe5024338c237646b207180c
+Block 2, mined by 8 at 1673153442339231, hash 0000001f7eb41f50c0959d08eb5e6e64bf355a1ffad6fcaf151684dddd3fee66
+Block 3, mined by 1 at 1673153445251500, hash 000000f93176d54bd57e50274af4b848fe5274fdfaecb1a0451b4573ac0e7e9c
+Block 4, mined by 6 at 1673153448211236, hash 0000005233462295551ab6a05c2c9630016895fca24bb6681ae72dbe755099cb
+Block 5, mined by 6 at 1673153451148619, hash 000000ecb11275dc782539a012979cc071bf3eaf5e0ae0121ad7475dea722596
+Block 6, mined by 8 at 1673153454284297, hash 0000002d37ce4da7d409730a4dd642574bea61bbf414c6e89de65be9047515d8
+```
+平均出块时间 5600ms
+
+## Simulation 3
+
+参数
+difficulty=5
+maxHashTime=100000
+good=10
+evil=1
+round=10
+
+```
+Block 1, mined by 0 at 1673153689761484, hash 000002ca4930e8465a80c0abf7652af878e86ad31efb40276d380752d05c7d25
+Block 2, mined by 1 at 1673153690110348, hash 00000d39c9e913a350a648ddf6be2c9421e83ea2a32f247f02d3c07ea5013d0d
+Block 3, mined by 1 at 1673153690461735, hash 00000a529e339d4c66d7fd937e44d8dd4dac917b30f8f39eb8cd0d6c67bbecb3
+Block 4, mined by 5 at 1673153691159229, hash 00000b91bc3a652ed3c5c7ebdc79a20859a0a6fcbf46bbe2c3ab022eb8a576d7
+Block 5, mined by 2 at 1673153692530085, hash 00000a3a4c8355f79d41752cd03d3a713dab3001c80915924bbd5eccd0658305
+```
+
+10号节点为恶意节点，攻击失败
+
+## Simulation 4
+参数
+difficulty=5
+maxHashTime=100000
+good=10
+evil=3
+round=10
+
+```
+Block 1, mined by 5 at 1673153819809059, hash 00000db8b55295dc2a976987861c660f2341b621e867fe09228cbd9137f5ebfa
+Block 2, mined by 2 at 1673153821351555, hash 00000a01604f0d2e8127cd3d014acd78f45f32cb329b5ceb1febd36a1f39b7bc
+Block 3, mined by 8 at 1673153821847776, hash 00000149b6a5a35c887192d67753334a4925470160a3b9c3d86c9e0358f21101
+Block 4, mined by 1 at 1673153822862515, hash 00000d20e8c901f82a04e677d6484549df94b26764f15ba79226fb530b358366
+Block 5, mined by 1 at 1673153823276167, hash 0000035f11ae79827282a4ec6e39cd641cf6b6807c7ea9f3077eead4091a60aa
+Block 6, mined by 8 at 1673153823812964, hash 00000c3af40e64bacfc55d50f2709e143b1fcb8fff52f66a4ace1a5be688ea75
+```
+
+10号节点为恶意节点，攻击失败
+
+### Simulation 5
+
+参数
+difficulty=5
+maxHashTime=100000
+good=10
+evil=5
+round=10
+
+
+```
+Block 1, mined by 10 at 1673153857294618, hash 000008c891096ade6837721a9abd1fb15226f472a5e47558b172f4c001f8d4c6
+Block 2, mined by 10 at 1673153857640269, hash 0000004155c6c1a6d2ca6633b7d0690109684490d2f183f4f91f6213efeca5fa
+Block 3, mined by 10 at 1673153857839369, hash 00000e864d070b3e92b0a612604c27b2f7911338a4dabf96af6ec11218402686
+Block 4, mined by 10 at 1673153858278851, hash 00000f9bacd91a2dfa250350f6a742bee3d4a6c9e14155b7fee50e0b18235c5a
+Block 5, mined by 1 at 1673153859093899, hash 00000a555d6253d47043a1bd64aa4626096907eec8c3a1c2dbb9d02e705a279a
+Block 6, mined by 7 at 1673153859719741, hash 000008605521e4979086cd829601be7356f7c52cffbe9b284a4f7c0eb651030b
+Block 7, mined by 1 at 1673153860929753, hash 000006f396d42cb7cc83134b78bf74aabc75ed0998bbdf9f8254bcfe5d63d1c2
+Block 8, mined by 9 at 1673153861573580, hash 0000075b7261a3cbeffa2f055a184d924ddff9a6b9c51128198aff4c29823df3
+```
+10号节点为恶意节点，攻击成功。
